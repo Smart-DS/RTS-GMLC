@@ -1,0 +1,75 @@
+{
+    "title": "BidDSJsonModel",
+    "description": "Base data model for all dsgrid data models",
+    "type": "object",
+    "properties": {
+        "network": {
+            "title": "network",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/Network"
+                }
+            ]
+        },
+        "scenario": {
+            "title": "scenario",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/Scenario"
+                }
+            ]
+        }
+    },
+    "required": [
+        "network",
+        "scenario"
+    ],
+    "additionalProperties": false,
+    "definitions": {
+        "Generator": {
+            "title": "BidDSJsonModel",
+            "description": "Base data model for all dsgrid data models",
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "title": "uid",
+                    "type": "string"
+                },
+                "bus": {
+                    "title": "bus",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "uid",
+                "bus"
+            ],
+            "additionalProperties": false
+        },
+        "Network": {
+            "title": "BidDSJsonModel",
+            "description": "Base data model for all dsgrid data models",
+            "type": "object",
+            "properties": {
+                "generators": {
+                    "title": "generators",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Generator"
+                    }
+                }
+            },
+            "required": [
+                "generators"
+            ],
+            "additionalProperties": false
+        },
+        "Scenario": {
+            "title": "BidDSJsonModel",
+            "description": "Base data model for all dsgrid data models",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+        }
+    }
+}
