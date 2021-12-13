@@ -26,4 +26,5 @@ if __name__ == "__main__":
         network=Network(generators=generators), 
         scenario=Scenario())
     
-    dump_data(serialize_model(model), here / "rts-gmlc.json", indent=4) 
+    with open(here / "rts-gmlc.json", "w") as f:
+        f.write(model.json(indent=4))
