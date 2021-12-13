@@ -1,21 +1,29 @@
 from pathlib import Path
 
-from .datamodel import *
+import pandas as pd
 
-rts_path = Path(__file__).parent.parent.parent
+from datamodel import *
+
+here = Path(__file__).parent
+rts_path = here.parent.parent
 source_path = rts_path / "SourceData"
 
 if __name__ == "__main__":    
 
     # Open Source Data .csv files one by one and create data model objects
+    gen_map = {
+        "GEN UID": "uid",
+        "Bus ID": "bus"
+    }
     generators = []
-    with open(source_path / "gen.csv", "r") as f:
-        # for each line of gen.csv, make a Generator object
-        # Question: Loop through and map explicitly, or do something more elegant?
-        generators.append(Generator())
-        pass
+    df = pd.read_csv(source_path / "gen.csv")
+    df = df[[col for col in gen_map.keys()]]
+    df.rename(columns=gen_map, inplace=True)
+    for ind, gen in df.iterrows():
+        generators.append(Generator(**gen.to_dict()))
 
     model = Model(
-        Network(generators), 
-        Scenario())
+        network=Network(generators=generators), 
+        scenario=Scenario())
     
+    dump_data(serialize_model(model), here / "rts-gmlc.json", indent=4) 

@@ -3,7 +3,8 @@ import json
 import os
 from pathlib import Path
 
-from pydantic import DataModel, Field
+from pydantic import BaseModel, Field
+from typing import Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -48,17 +49,18 @@ class BidDSJsonBaseModel(BaseModel):
         data = cls.schema(by_alias=by_alias)
         return json.dumps(data, indent=indent, cls=ExtendedJSONEncoder)
 
+
 # An Option: Translate formulation schema into Pydantic models, can output 
 # overall formulation as json schema if that's helpful for others.
 # Question: Are there other/better options we should consider?
 
-class Model(BidDSJsonBaseModel):
+class Generator(BidDSJsonBaseModel):
 
-    network: Network = Field(
-        title="network"
+    uid: str = Field(
+        title="uid"
     )
-    scenario: Scenario = Field(
-        title="scenario"
+    bus: str = Field(
+        title="bus"
     )
 
 
@@ -72,14 +74,13 @@ class Network(BidDSJsonBaseModel):
 class Scenario(BidDSJsonBaseModel): pass
 
 
+class Model(BidDSJsonBaseModel):
 
-class Generator(BidDSJsonBaseModel):
-
-    uid: str = Field(
-        title="uid"
+    network: Network = Field(
+        title="network"
     )
-    bus: str = Field(
-        title="bus"
+    scenario: Scenario = Field(
+        title="scenario"
     )
 
 
@@ -118,3 +119,31 @@ def dump_data(data, filename, **kwargs):
         json.dump(data, f_out, **kwargs)
 
     logger.debug("Dumped data to %s", filename)
+
+
+def serialize_model(model: BidDSJsonBaseModel, by_alias=True, exclude=None):
+    """Serialize a model to a dict, converting values as needed.
+    Parameters
+    ----------
+    by_alias : bool
+        Forwarded to pydantic.BaseModel.dict.
+    exclude : set
+        Forwarded to pydantic.BaseModel.dict.
+    """
+    # TODO: we should be able to use model.json and custom JSON encoders
+    # instead of doing this, at least in most cases.
+    return serialize_model_data(model.dict(by_alias=by_alias, exclude=exclude))
+
+
+def serialize_model_data(data: dict):
+    for key, val in data.items():
+        data[key] = _serialize_model_item(val)
+    return data
+
+
+def _serialize_model_item(val):
+    if isinstance(val, dict):
+        return serialize_model_data(val)
+    if isinstance(val, list):
+        return [_serialize_model_item(x) for x in val]
+    return val
