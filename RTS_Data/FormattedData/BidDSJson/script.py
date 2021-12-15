@@ -8,7 +8,7 @@ here = Path(__file__).parent
 rts_path = here.parent.parent
 source_path = rts_path / "SourceData"
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
 
     # Open Source Data .csv files one by one and create data model objects
     gen_map = {
@@ -29,3 +29,7 @@ if __name__ == "__main__":
     
     with open(here / "rts-gmlc.json", "w") as f:
         f.write(model.json(indent=4))
+
+    with open(here / "schema.json", "w") as f:
+        f.write(Model.schema_json(indent=4))
+        

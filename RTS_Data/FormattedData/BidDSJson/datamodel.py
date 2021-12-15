@@ -1,9 +1,11 @@
 import logging
+from datetime import datetime, timedelta
 import json
 import os
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
+from pydantic.json import isoformat, timedelta_isoformat
 from typing import Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
@@ -48,6 +50,16 @@ class BidDSJsonBaseModel(BaseModel):
     def schema_json(cls, by_alias=True, indent=None) -> str:
         data = cls.schema(by_alias=by_alias)
         return json.dumps(data, indent=indent, cls=ExtendedJSONEncoder)
+
+
+class ExtendedJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return isoformat(obj)
+        if isinstance(obj, timedelta):
+            return timedelta_isoformat(obj)
+
+        return json.JSONEncoder.default(self, obj)
 
 
 # An Option: Translate formulation schema into Pydantic models, can output 
