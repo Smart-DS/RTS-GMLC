@@ -13,7 +13,8 @@ if __name__ == "__main__":
     # Open Source Data .csv files one by one and create data model objects
     gen_map = {
         "GEN UID": "uid",
-        "Bus ID": "bus"
+        "Bus ID": "bus",
+        "V Setpoint p.u.": "vm_setpoint"
     }
     generators = []
     df = pd.read_csv(source_path / "gen.csv")

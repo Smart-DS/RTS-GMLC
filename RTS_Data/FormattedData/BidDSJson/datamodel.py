@@ -62,6 +62,9 @@ class Generator(BidDSJsonBaseModel):
     bus: str = Field(
         title="bus"
     )
+    vm_setpoint: float = Field(
+        title="vm_setpoint"
+    )
 
 
 class Network(BidDSJsonBaseModel):
