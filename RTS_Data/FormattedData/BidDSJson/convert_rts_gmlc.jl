@@ -19,8 +19,7 @@ Convert the RTS-GMLC system to ARPA-E format.
 """
 function convert_rts_gmlc_system(
     repo::AbstractString,
-    file_path_network::AbstractString,
-    file_path_time_series::AbstractString;
+    file_path_combined::AbstractString;
     time_series_resolution = Dates.Hour(1),
     console_level = Logging.Info,
     file_level = Logging.Info,
@@ -38,16 +37,13 @@ function convert_rts_gmlc_system(
     )
     data = to_arpa_e_format(sys)
     data_time_series = to_arpa_e_format_time_series(sys)
-    open(file_path_network, "w") do io
-        # JSON3.write(io, data)
-        JSON3.pretty(io, data)
-    end
-    open(file_path_time_series, "w") do io
+    data_combined = [data, data_time_series]
+    open(file_path_combined, "w") do io
         # JSON3.write(io, data_time_series)
-        JSON3.pretty(io, data_time_series)
+        JSON3.pretty(io, data_combined)
     end
 
-    @info "Serialized power system to $file_path_network"
+    # @info "Serialized power system to $file_path_network"
     return
 end
 
@@ -158,9 +154,9 @@ function to_arpa_e_format(component::Bus)
         "type" => string(get_bustype(component)),
         "vm_lb" => get_voltage_limits(component).min,
         "vm_ub" => get_voltage_limits(component).max,
-        "reserve_uid" => nothing,
-        "latitude" => nothing,
-        "longitude" => nothing,
+        # "reserve_uid" => nothing,
+        # "latitude" => nothing,
+        # "longitude" => nothing,
     )
     area = get_area(component)
     zone = get_load_zone(component)
@@ -176,12 +172,12 @@ function _to_arpa_e_format_generator_common(component::Union{Generator, PowerLoa
     data = Dict(
         "uid" => get_name(component),
         "bus" => get_number(get_bus(component)),
-        "vm_setpoint" => nothing,
-        "startup_cost" => nothing,
-        "shutdown_cost" => nothing,
-        "energy_ub" => nothing,
-        "energy_lb" => nothing,
-        "pg_ext" => nothing,
+        # "vm_setpoint" => nothing,
+        # "startup_cost" => nothing,
+        # "shutdown_cost" => nothing,
+        # "energy_ub" => nothing,
+        # "energy_lb" => nothing,
+        # "pg_ext" => nothing,
         "config_num" => nothing,
         "config" => [],
         "storage_cap" => false,
@@ -196,23 +192,23 @@ function _to_arpa_e_format_generator_common_config(component::Union{Generator, P
     data = Dict(
         "uid" => "default",
         "pg_ub" => 0.0,
-        "qg_ub" => nothing,
-        "pg_lb" => nothing,
-        "qg_lb" => nothing,
-        "cost" => nothing,
-        "on_cost" => nothing,
-        "in_service_time_lb" => nothing,
-        "down_time_lb" => nothing,
-        "pg_nom_ramp_ub" => nothing,
-        "pg_nom_ramp_lb" => nothing,
-        "storage_efficiency" => nothing,
-        "Reg_Up_ub" => nothing,
-        "Reg_Down_ub" => nothing,
-        "Flex_Up_ub" => nothing,
-        "Flex_Down_ub" => nothing,
-        "Spin_Up_R1_ub" => nothing,
-        "Spin_Up_R2_ub" => nothing,
-        "Spin_Up_R3_ub" => nothing,
+        "qg_ub" => 0.0,
+        "pg_lb" => 0.0,
+        "qg_lb" => 0.0,
+        # "cost" => nothing,
+        # "on_cost" => nothing,
+        # "in_service_time_lb" => nothing,
+        # "down_time_lb" => nothing,
+        # "pg_nom_ramp_ub" => nothing,
+        # "pg_nom_ramp_lb" => nothing,
+        # "storage_efficiency" => nothing,
+        # "Reg_Up_ub" => nothing,
+        # "Reg_Down_ub" => nothing,
+        # "Flex_Up_ub" => nothing,
+        # "Flex_Down_ub" => nothing,
+        # "Spin_Up_R1_ub" => nothing,
+        # "Spin_Up_R2_ub" => nothing,
+        # "Spin_Up_R3_ub" => nothing,
     )
 
     return data
@@ -225,6 +221,7 @@ function to_arpa_e_format(component::RenewableFix)
     config = _to_arpa_e_format_generator_common_config(component)
     config["pg_ub"] = get_max_active_power(component)
     config["qg_ub"] = get_max_reactive_power(component)
+    config["cost"] = [[0.0, get_max_active_power(component)]]
 
     push!(data["config"], config)
 
@@ -239,7 +236,7 @@ function to_arpa_e_format(component::RenewableDispatch)
     config["pg_ub"] = get_max_active_power(component)
     config["qg_ub"] = get_max_reactive_power(component)
     config["qg_lb"] = get_reactive_power_limits(component).min
-    config["cost"] = [get_variable(get_operation_cost(component)).cost, get_max_active_power(component)]
+    config["cost"] = [[get_variable(get_operation_cost(component)).cost, get_max_active_power(component)]]
     config["on_cost"] = get_fixed(get_operation_cost(component))
     for service in get_services(component)
         config[get_name(service) * "_ub"] = get_max_active_power(component)
@@ -300,7 +297,7 @@ function to_arpa_e_format(component::HydroDispatch)
     config["qg_ub"] = get_max_reactive_power(component)
     config["pg_lb"] = get_active_power_limits(component).min
     config["qg_lb"] = get_reactive_power_limits(component).min
-    config["cost"] = [get_variable(get_operation_cost(component)).cost, get_max_active_power(component)]
+    config["cost"] = [[get_variable(get_operation_cost(component)).cost, get_max_active_power(component)]]
     config["on_cost"] = get_fixed(get_operation_cost(component))
     config["in_service_time_lb"] = get_time_limits(component).up
     config["down_time_lb"] = get_time_limits(component).down
@@ -328,7 +325,7 @@ function to_arpa_e_format(component::HydroEnergyReservoir)
     config["qg_ub"] = get_max_reactive_power(component)
     config["pg_lb"] = get_active_power_limits(component).min
     config["qg_lb"] = get_reactive_power_limits(component).min
-    config["cost"] = [get_variable(get_operation_cost(component)).cost, get_max_active_power(component)]
+    config["cost"] = [[get_variable(get_operation_cost(component)).cost, get_max_active_power(component)]]
     config["on_cost"] = get_fixed(get_operation_cost(component))
     config["in_service_time_lb"] = get_time_limits(component).up
     config["down_time_lb"] = get_time_limits(component).down
@@ -351,7 +348,7 @@ function to_arpa_e_format(component::PowerLoad)
     config = _to_arpa_e_format_generator_common_config(component)
     config["pg_lb"] = -get_max_active_power(component)
     config["qg_lb"] = -get_max_reactive_power(component)
-    config["cost"] = [3000*base_power, -get_max_active_power(component)]
+    config["cost"] = [[3000*base_power, -get_max_active_power(component)]]
 
     push!(data["config"], config)
     return data
@@ -485,9 +482,6 @@ function to_arpa_e_format_time_series(sys::System)
     data = Dict(
                 "time_data" => Dict("start_time" => TimeSeries.DateTime("2020-01-01T00:00:00"), "time_period" => 24, "interval_duration" => 1.0),
                 "dispatchable_device" => [],
-                "ac_line" => [],
-                "two_winding_transformer" => [],
-                "dc_line" => [],
                 "regional_reserve" => [])
 
     for component in get_components(Component, sys)
@@ -593,9 +587,11 @@ end
 
 # run JSON translation script
 repo = "C://Users//nguo//Documents//GitHub//Bid-DS//RTS-GMLC"
-file_path_network = joinpath(repo, "RTS_Data//FormattedData//BidDSJson", "PSY_RTS_GMLC_network.json")
-file_path_time_series = joinpath(repo, "RTS_Data//FormattedData//BidDSJson", "PSY_RTS_GMLC_timeseries.json")
-convert_rts_gmlc_system(repo, file_path_network, file_path_time_series)
+# file_path_network = joinpath(repo, "RTS_Data//FormattedData//BidDSJson", "PSY_RTS_GMLC_network.json")
+# file_path_time_series = joinpath(repo, "RTS_Data//FormattedData//BidDSJson", "PSY_RTS_GMLC_timeseries.json")
+file_path_combined = joinpath(repo, "RTS_Data//FormattedData//BidDSJson", "PSY_RTS_GMLC_data_.json")
+# convert_rts_gmlc_system(repo, file_path_network, file_path_time_series, file_path_combined)
+convert_rts_gmlc_system(repo, file_path_combined)
 
 
 
@@ -607,11 +603,13 @@ convert_rts_gmlc_system(repo, file_path_network, file_path_time_series)
 
 # for testing purposes
 # sys = create_rts_gmlc_system(repo)
-# collect(get_components(HydroDispatch, sys))
+# collect(get_components(Reserve, sys))
 # A = get_component(GenericBattery, sys, "313_STORAGE_1")
 # A = get_component(ThermalStandard, sys, "322_CT_6")
 # A = get_component(HydroEnergyReservoir, sys, "215_HYDRO_3")
 # A = get_component(HydroDispatch, sys, "201_HYDRO_4")
+# A = get_component(PowerLoad, sys, "Bacon")
+# get_time_series_container(A)
 
 # ts = get_time_series_array(
 #     SingleTimeSeries,
